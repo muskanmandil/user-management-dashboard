@@ -18,77 +18,113 @@ const UserManagement = () => {
   };
   const [newUser, setNewUser] = useState(defaultData);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchUsers = async () => {
-    const response = await fetch(`${backendUrl}/api/users/all`);
-    const data = await response.json();
-    if (response.ok) {
-      setUsers(data.data);
-    } else {
-      toast.error(data.message);
+    try {
+      setLoading(true);
+      const response = await fetch(`${backendUrl}/api/users/all`);
+      const data = await response.json();
+      if (response.ok) {
+        setUsers(data.data);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchRoles = async () => {
-    const response = await fetch(`${backendUrl}/api/roles/all`);
-    const data = await response.json();
-    if (response.ok) {
-      setRoles(data.data);
-    } else {
-      toast.error(data.message);
+    try {
+      setLoading(true);
+      const response = await fetch(`${backendUrl}/api/roles/all`);
+      const data = await response.json();
+      if (response.ok) {
+        setRoles(data.data);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const addUser = async () => {
-    const response = await fetch(`${backendUrl}/api/users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newUser),
-    });
-    if (response.ok) {
-      toast.success("User Added");
-      fetchUsers();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`${backendUrl}/api/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newUser),
+      });
+      if (response.ok) {
+        toast.success("User Added");
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setModalOpen(false);
+      setNewUser(defaultData);
+      setSubmitting(false);
     }
-
-    setModalOpen(false);
-    setNewUser(defaultData);
   };
 
   const editUser = async () => {
-    const response = await fetch(`${backendUrl}/api/users/${currentUser._id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newUser),
-    });
-    if (response.ok) {
-      toast.success("User Updated");
-      fetchUsers();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      setSubmitting(true);
+      const response = await fetch(
+        `${backendUrl}/api/users/${currentUser._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newUser),
+        }
+      );
+      if (response.ok) {
+        toast.success("User Updated");
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setModalOpen(false);
+      setNewUser(defaultData);
+      setIsEditing(false);
+      setSubmitting(false);
     }
-    setModalOpen(false);
-    setNewUser(defaultData);
-    setIsEditing(false);
   };
 
   const deleteUser = async (userId) => {
-    const response = await fetch(`${backendUrl}/api/users/${userId}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      toast.success("User Deleted");
-      fetchUsers();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      const response = await fetch(`${backendUrl}/api/users/${userId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        toast.success("User Deleted");
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -144,53 +180,57 @@ const UserManagement = () => {
       </div>
 
       {/* Table Section */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white shadow-md rounded-lg text-sm sm:text-base">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 sm:p-4 text-left">Name</th>
-              <th className="p-2 sm:p-4 text-left">Email</th>
-              <th className="p-2 sm:p-4 text-left">Roles</th>
-              <th className="p-2 sm:p-4 text-left">Status</th>
-              <th className="p-2 sm:p-4 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users?.map((user) => (
-              <tr
-                key={user._id}
-                className="border-b hover:bg-gray-50 text-xs sm:text-sm"
-              >
-                <td className="px-2 py-1 sm:px-4 sm:py-2">{user.name}</td>
-                <td className="px-2 py-1 sm:px-4 sm:py-2">{user.email}</td>
-                <td className="px-2 py-1 sm:px-4 sm:py-2">
-                  {user.roles.map((role) => role.name).join(", ")}
-                </td>
-                <td className="px-2 py-1 sm:px-4 sm:py-2">{user.status}</td>
-                <td className="px-2 py-1 sm:px-4 sm:py-2 space-x-2 flex">
-                  <button
-                    onClick={() => openEditModal(user)}
-                    className="border-2 border-yellow-400 text-yellow-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-yellow-400 hover:text-white flex items-center gap-2"
-                  >
-                    <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className=" hidden md:block">Edit</span>
-                  </button>
-                  <button
-                    onClick={() => deleteUser(user._id)}
-                    className="border-2 border-red-500 text-red-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-red-500 hover:text-white flex items-center gap-2"
-                  >
-                    <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className=" hidden md:block">Delete</span>
-                  </button>
-                </td>
+
+      {loading ? (
+        "Loading..."
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white shadow-md rounded-lg text-sm sm:text-base">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2 sm:p-4 text-left">Name</th>
+                <th className="p-2 sm:p-4 text-left">Email</th>
+                <th className="p-2 sm:p-4 text-left">Roles</th>
+                <th className="p-2 sm:p-4 text-left">Status</th>
+                <th className="p-2 sm:p-4 text-left">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {users?.map((user) => (
+                <tr
+                  key={user._id}
+                  className="border-b hover:bg-gray-50 text-xs sm:text-sm"
+                >
+                  <td className="px-2 py-1 sm:px-4 sm:py-2">{user.name}</td>
+                  <td className="px-2 py-1 sm:px-4 sm:py-2">{user.email}</td>
+                  <td className="px-2 py-1 sm:px-4 sm:py-2">
+                    {user.roles.map((role) => role.name).join(", ")}
+                  </td>
+                  <td className="px-2 py-1 sm:px-4 sm:py-2">{user.status}</td>
+                  <td className="px-2 py-1 sm:px-4 sm:py-2 space-x-2 flex">
+                    <button
+                      onClick={() => openEditModal(user)}
+                      className="border-2 border-yellow-400 text-yellow-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-yellow-400 hover:text-white flex items-center gap-2"
+                    >
+                      <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className=" hidden md:block">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => deleteUser(user._id)}
+                      className="border-2 border-red-500 text-red-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-red-500 hover:text-white flex items-center gap-2"
+                    >
+                      <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className=" hidden md:block">Delete</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal for Adding or Editing User */}
-      <form onSubmit={isEditing ? editUser : addUser}>
       <Modal
         isOpen={isModalOpen}
         onClose={() => closeModal()}
@@ -281,14 +321,17 @@ const UserManagement = () => {
 
         <div className="mt-4">
           <button
-            type="submit"
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 text-sm sm:text-base"
+            onClick={isEditing ? editUser : addUser}
           >
-            {isEditing ? "Update User" : "Add User"}
+            {submitting
+              ? "Submitting..."
+              : isEditing
+              ? "Update User"
+              : "Add User"}
           </button>
         </div>
       </Modal>
-      </form>
     </div>
   );
 };

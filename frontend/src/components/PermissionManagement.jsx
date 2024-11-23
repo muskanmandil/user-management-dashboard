@@ -12,47 +12,66 @@ const PermissionManagement = () => {
     description: "",
   };
   const [newPermission, setNewPermission] = useState(defaultData);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchPermissions = async () => {
-    const response = await fetch(`${backendUrl}/api/permissions/all`);
-    const data = await response.json();
-    if (response.ok) {
-      setPermissions(data.data);
-    } else {
-      toast.error(data.message);
+    try {
+      setLoading(true);
+      const response = await fetch(`${backendUrl}/api/permissions/all`);
+      const data = await response.json();
+      if (response.ok) {
+        setPermissions(data.data);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const addPermission = async () => {
-    const response = await fetch(`${backendUrl}/api/permissions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newPermission),
-    });
-    if (response.ok) {
-      toast.success("Permission Added");
-      fetchPermissions();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`${backendUrl}/api/permissions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newPermission),
+      });
+      if (response.ok) {
+        toast.success("Permission Added");
+        fetchPermissions();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setModalOpen(false);
+      setNewPermission(defaultData);
+      setSubmitting(false);
     }
-
-    setModalOpen(false);
-    setNewPermission(defaultData);
   };
 
   const deletePermission = async (id) => {
-    const response = await fetch(`${backendUrl}/api/permissions/${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      toast.success("Permission Deleted");
-      fetchPermissions();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      const response = await fetch(`${backendUrl}/api/permissions/${id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        toast.success("Permission Deleted");
+        fetchPermissions();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -82,39 +101,46 @@ const PermissionManagement = () => {
       </div>
 
       {/* Table Section */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full  bg-white shadow-md rounded-lg text-sm sm:text-base">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 sm:p-4 text-left">Name</th>
-              <th className="p-2 sm:p-4 text-left">Description</th>
-              <th className="p-2 sm:p-4 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {permissions?.map((permission) => (
-              <tr
-                key={permission._id}
-                className="border-b hover:bg-gray-100 text-xs sm:text-sm"
-              >
-                <td className="px-4 py-2 sm:px-4 sm:py-2">{permission.name}</td>
-                <td className="px-4 py-2 sm:px-4 sm:py-2">
-                  {permission.description}
-                </td>
-                <td className="px-4 py-2  sm:px-4 sm:py-2 space-x-2">
-                  <button
-                    onClick={() => deletePermission(permission._id)}
-                    className="border-2 border-red-500 text-red-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-red-500 hover:text-white flex items-center gap-2"
-                  >
-                    <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className=" hidden md:block">Delete</span>
-                  </button>
-                </td>
+
+      {loading ? (
+        "Loading..."
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full  bg-white shadow-md rounded-lg text-sm sm:text-base">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2 sm:p-4 text-left">Name</th>
+                <th className="p-2 sm:p-4 text-left">Description</th>
+                <th className="p-2 sm:p-4 text-left">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {permissions?.map((permission) => (
+                <tr
+                  key={permission._id}
+                  className="border-b hover:bg-gray-50 text-xs sm:text-sm"
+                >
+                  <td className="px-4 py-2 sm:px-4 sm:py-2">
+                    {permission.name}
+                  </td>
+                  <td className="px-4 py-2 sm:px-4 sm:py-2">
+                    {permission.description}
+                  </td>
+                  <td className="px-4 py-2  sm:px-4 sm:py-2 space-x-2">
+                    <button
+                      onClick={() => deletePermission(permission._id)}
+                      className="border-2 border-red-500 text-red-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-red-500 hover:text-white flex items-center gap-2"
+                    >
+                      <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className=" hidden md:block">Delete</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal for Adding Permission */}
       <Modal
@@ -156,7 +182,7 @@ const PermissionManagement = () => {
             onClick={addPermission}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 text-sm sm:text-base"
           >
-            Add Permission
+            {submitting ? "Submitting..." : "Add Permission"}
           </button>
         </div>
       </Modal>

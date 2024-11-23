@@ -16,79 +16,114 @@ const RoleManagement = () => {
   };
   const [newRole, setNewRole] = useState(defaultData);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchRoles = async () => {
-    const response = await fetch(`${backendUrl}/api/roles/all`);
-    if (!response.ok) throw new Error("Failed to fetch roles");
-    const data = await response.json();
-    if (response.ok) {
-      setRoles(data.data);
-    } else {
-      toast.error(data.message);
+    try {
+      setLoading(true);
+      const response = await fetch(`${backendUrl}/api/roles/all`);
+      if (!response.ok) throw new Error("Failed to fetch roles");
+      const data = await response.json();
+      if (response.ok) {
+        setRoles(data.data);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchPermissions = async () => {
-    const response = await fetch(`${backendUrl}/api/permissions/all`);
-    const data = await response.json();
-    if (response.ok) {
-      setPermissions(data.data);
-    } else {
-      toast.error(data.message);
+    try {
+      setLoading(true);
+      const response = await fetch(`${backendUrl}/api/permissions/all`);
+      const data = await response.json();
+      if (response.ok) {
+        setPermissions(data.data);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const addRole = async () => {
-    const response = await fetch(`${backendUrl}/api/roles`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newRole),
-    });
-    if (response.ok) {
-      toast.success("Role Added");
-      fetchRoles();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`${backendUrl}/api/roles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newRole),
+      });
+      if (response.ok) {
+        toast.success("Role Added");
+        fetchRoles();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setModalOpen(false);
+      setNewRole(defaultData);
+      setSubmitting(false);
     }
-
-    setModalOpen(false);
-    setNewRole(defaultData);
   };
 
   const editRole = async () => {
-    const response = await fetch(`${backendUrl}/api/roles/${currentRole._id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newRole),
-    });
-    if (response.ok) {
-      toast.success("Role Updated");
-      fetchRoles();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      setSubmitting(true);
+      const response = await fetch(
+        `${backendUrl}/api/roles/${currentRole._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newRole),
+        }
+      );
+      if (response.ok) {
+        toast.success("Role Updated");
+        fetchRoles();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setModalOpen(false);
+      setNewRole(defaultData);
+      setIsEditing(false);
+      setSubmitting(false);
     }
-
-    setModalOpen(false);
-    setNewRole(defaultData);
-    setIsEditing(false);
   };
 
   const deleteRole = async (roleId) => {
-    const response = await fetch(`${backendUrl}/api/roles/${roleId}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      toast.success("Role Deleted");
-      fetchRoles();
-    } else {
-      const data = await response.json();
-      toast.error(data.message);
+    try {
+      const response = await fetch(`${backendUrl}/api/roles/${roleId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        toast.success("Role Deleted");
+        fetchRoles();
+      } else {
+        const data = await response.json();
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -142,48 +177,52 @@ const RoleManagement = () => {
       </div>
 
       {/* Table Section */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white shadow-md rounded-lg text-sm sm:text-base">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 sm:p-4 text-left">Name</th>
-              <th className="p-2 sm:p-4 text-left">Permissions</th>
-              <th className="p-2 sm:p-4 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roles?.map((role) => (
-              <tr
-                key={role._id}
-                className="border-b hover:bg-gray-50 text-xs sm:text-sm"
-              >
-                <td className="px-2 py-1 sm:px-4 sm:py-2">{role.name}</td>
-                <td className="px-2 py-1 sm:px-4 sm:py-2">
-                  {role.permissions
-                    .map((permission) => permission.name)
-                    .join(", ")}
-                </td>
-                <td className="px-2 py-1 sm:px-4 sm:py-2 space-x-2 flex">
-                  <button
-                    onClick={() => openEditModal(role)}
-                    className="border-2 border-yellow-400 text-yellow-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-yellow-400 hover:text-white flex items-center gap-2"
-                  >
-                    <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className=" hidden md:block">Edit</span>
-                  </button>
-                  <button
-                    onClick={() => deleteRole(role._id)}
-                    className="border-2 border-red-500 text-red-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-red-500 hover:text-white flex items-center gap-2"
-                  >
-                    <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className=" hidden md:block">Delete</span>
-                  </button>
-                </td>
+      {loading ? (
+        "Loading..."
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white shadow-md rounded-lg text-sm sm:text-base">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2 sm:p-4 text-left">Name</th>
+                <th className="p-2 sm:p-4 text-left">Permissions</th>
+                <th className="p-2 sm:p-4 text-left">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {roles?.map((role) => (
+                <tr
+                  key={role._id}
+                  className="border-b hover:bg-gray-50 text-xs sm:text-sm"
+                >
+                  <td className="px-2 py-1 sm:px-4 sm:py-2">{role.name}</td>
+                  <td className="px-2 py-1 sm:px-4 sm:py-2">
+                    {role.permissions
+                      .map((permission) => permission.name)
+                      .join(", ")}
+                  </td>
+                  <td className="px-2 py-1 sm:px-4 sm:py-2 space-x-2 flex">
+                    <button
+                      onClick={() => openEditModal(role)}
+                      className="border-2 border-yellow-400 text-yellow-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-yellow-400 hover:text-white flex items-center gap-2"
+                    >
+                      <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className=" hidden md:block">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => deleteRole(role._id)}
+                      className="border-2 border-red-500 text-red-500 font-semibold px-3 sm:px-4 py-1 sm:py-2 rounded-md hover:bg-red-500 hover:text-white flex items-center gap-2"
+                    >
+                      <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className=" hidden md:block">Delete</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal for Adding or Editing Role */}
       <Modal
@@ -258,7 +297,11 @@ const RoleManagement = () => {
             onClick={isEditing ? editRole : addRole}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 text-sm sm:text-base"
           >
-            {isEditing ? "Update Role" : "Add Role"}
+            {submitting
+              ? "Submitting..."
+              : isEditing
+              ? "Update Role"
+              : "Add Role"}
           </button>
         </div>
       </Modal>
